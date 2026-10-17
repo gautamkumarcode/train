@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Lo-fi, dim-carriage ambience tokens shared across components. */
+  --paper: #f4e9d2;
+  --ink: #0b1020;
+  --glow: rgba(245, 179, 1, 0.35);
+  --scanline-opacity: 0.06;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: radial-gradient(
+      120% 120% at 50% -10%,
+      #16223f 0%,
+      var(--ink) 55%,
+      #05070f 100%
+    )
+    fixed;
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Respect users who prefer reduced motion — disable ambient loops. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  /* Faint CRT scanlines over the whole viewport for the nostalgic feel. */
+  .crt-scanlines {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, var(--scanline-opacity)) 0px,
+      rgba(0, 0, 0, var(--scanline-opacity)) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+  }
+
+  /* Warm vignette so the corners read like an old berth lamp glow. */
+  .carriage-vignette {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    box-shadow: inset 0 0 220px 40px rgba(0, 0, 0, 0.75);
+  }
+
+  /* The animated sleeper-car track strip that scrolls while "in motion". */
+  .rail-track {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(244, 233, 210, 0.25) 0 24px,
+      transparent 24px 40px,
+      rgba(244, 233, 210, 0.12) 40px 80px,
+      transparent 80px 96px
+    );
+  }
+
+  .rail-track--moving {
+    animation: track-scroll-ambient 1.1s linear infinite;
+  }
+
+  @keyframes track-scroll-ambient {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: -96px 0;
+    }
+  }
+
+  /* Departure-board style chunky LED cell. */
+  .led-panel {
+    background: linear-gradient(180deg, #0a0f1e 0%, #05070f 100%);
+    border: 1px solid rgba(245, 179, 1, 0.18);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6),
+      inset 0 0 24px rgba(245, 179, 1, 0.05);
+  }
+
+  .glow-amber {
+    text-shadow: 0 0 8px var(--glow);
+  }
+}
+
+@layer utilities {
+  /* Haptic "chain pull" jolt applied imperatively on the emergency chain. */
+  .shake-haptic {
+    animation: chain-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  @keyframes chain-shake {
+    10%,
+    90% {
+      transform: translate3d(-1px, 0, 0) rotate(-1deg);
+    }
+    20%,
+    80% {
+      transform: translate3d(2px, 0, 0) rotate(2deg);
+    }
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-4px, 0, 0) rotate(-3deg);
+    }
+    40%,
+    60% {
+      transform: translate3d(4px, 0, 0) rotate(3deg);
+    }
+  }
+}
+
+/* Intermittent rain: thin slanted streaks falling across the scene. Each drop's
+   left/height/opacity/timing are set inline; this shared keyframe drives the
+   fall (with a slight wind slant). */
+.rain-drop {
+  position: absolute;
+  top: -24px;
+  width: 1.5px;
+  border-radius: 1px;
+  animation-name: rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes rain-fall {
+  from {
+    transform: translate3d(0, -12vh, 0);
+  }
+  to {
+    transform: translate3d(-7vw, 114vh, 0);
+  }
+}
+
+/* Lightning: a one-shot double-stroke flicker of a full-scene bright overlay,
+   replayed by remounting the element (React key) on each strike. */
+@keyframes lightning-flash {
+  0% {
+    opacity: 0;
+  }
+  1% {
+    opacity: 0.85;
+  }
+  3% {
+    opacity: 0.12;
+  }
+  5% {
+    opacity: 0.95;
+  }
+  9% {
+    opacity: 0.2;
+  }
+  13% {
+    opacity: 0.7;
+  }
+  20% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.lightning-flash {
+  animation: lightning-flash 800ms ease-out 1;
+}
+
