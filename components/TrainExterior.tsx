@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { Mode } from "./trainScene";
+import type { Theme, PondColors } from "./trainScene";
+import { skyAt, skyFrame } from "./dayCycle";
 
 /**
  * TrainExterior — the "outside the train" diorama: a red locomotive pulling
@@ -25,95 +26,8 @@ const dr = (i: number, salt = 1) => {
   return x - Math.floor(x);
 };
 
-interface PondColors {
-  water: string;
-  bank: string;
-  hi: string;
-  ripple: string;
-  lily: string;
-  reed: string;
-  lotus: string;
-}
-
-interface Theme {
-  sky: string;
-  ground: string;
-  far: string;
-  far2: string;
-  tree: string;
-  pine: string;
-  bld: string;
-  win: string;
-  near: string;
-  bush: string;
-  pole: string;
-  bird: string;
-  bus: string;
-  car: string;
-  auto: string;
-  stars: boolean;
-  sun: boolean;
-  pond: PondColors;
-}
-
-const THEMES: Record<Mode, Theme> = {
-  night: {
-    sky: "linear-gradient(180deg,#0b1430 0%,#0b1020 55%,#05070f 100%)",
-    ground: "linear-gradient(180deg,#0c1728 0%,#05070f 100%)",
-    far: "#16223f",
-    far2: "#14213c",
-    tree: "#152a24",
-    pine: "#12271e",
-    bld: "#1a1f33",
-    win: "#f5b301",
-    near: "#0b1220",
-    bush: "#0d1622",
-    pole: "#0e1626",
-    bird: "#2a3f63",
-    bus: "#22344f",
-    car: "#2a3a2c",
-    auto: "#3a2f1a",
-    stars: true,
-    sun: false,
-    pond: {
-      water: "#1b3a5b",
-      bank: "#0e1a2b",
-      hi: "#2f5f8a",
-      ripple: "#3a6f9e",
-      lily: "#1f5a3a",
-      reed: "#123024",
-      lotus: "#e0607e",
-    },
-  },
-  day: {
-    sky: "linear-gradient(180deg,#4a9fdd 0%,#8fcdf2 45%,#d6eefa 80%,#eef8ff 100%)",
-    ground: "linear-gradient(180deg,#8cc06a 0%,#5aa050 55%,#3f7a3a 100%)",
-    far: "#a9c6b6",
-    far2: "#8fb79f",
-    tree: "#3f8f5a",
-    pine: "#2f7a4a",
-    bld: "#d8b48a",
-    win: "#3a5a7a",
-    near: "#3f5a44",
-    bush: "#4f9a63",
-    pole: "#5b6069",
-    bird: "#40566b",
-    bus: "#e0a92e",
-    car: "#3f6ea0",
-    auto: "#3aa14f",
-    stars: false,
-    sun: true,
-    pond: {
-      water: "#3f8fd0",
-      bank: "#6bbf6b",
-      hi: "#bfe6fb",
-      ripple: "#eaf7ff",
-      lily: "#2f8f4a",
-      reed: "#2f7a3a",
-      lotus: "#f0a0c0",
-    },
-  },
-};
+/* Theme + PondColors types live in ./trainScene; palettes are generated per
+   hour by ./dayCycle (skyAt) — see the component below. */
 
 /* --------------------------- svg primitives ---------------------------- */
 function Svg({
@@ -1257,8 +1171,7 @@ const RAIN_DROPS = Array.from({ length: 110 }, (_, i) => ({
   w: 1 + dr(i, 31) * 1.1,
 }));
 
-function Rain({ mode, on }: { mode: Mode; on: boolean }) {
-  const night = mode === "night";
+function Rain({ night, on }: { night: boolean; on: boolean }) {
   const rgb = night ? "178,196,255" : "233,241,251";
   return (
     <div
@@ -1299,8 +1212,7 @@ function Rain({ mode, on }: { mode: Mode; on: boolean }) {
   );
 }
 
-function CloudBank({ mode }: { mode: Mode }) {
-  const night = mode === "night";
+function CloudBank({ night }: { night: boolean }) {
   const gid = night ? "cloudGradN" : "cloudGradD";
   // sunlit top -> mid body -> darker stormy base for volumetric shading
   const top = night ? "#33456a" : "#ffffff";
@@ -1349,7 +1261,7 @@ function CloudBank({ mode }: { mode: Mode }) {
 // drifts slowly (seamless two-copy strip). A bottom mask dissolves the clouds
 // into the sky so there is no hard band edge. Marked data-keep-moving so the
 // clouds keep drifting even when the train halts.
-function StormClouds({ mode, on }: { mode: Mode; on: boolean }) {
+function StormClouds({ night, on }: { night: boolean; on: boolean }) {
   return (
     <div
       data-keep-moving
@@ -1371,10 +1283,10 @@ function StormClouds({ mode, on }: { mode: Mode; on: boolean }) {
         style={{ animationDuration: "120s" }}
       >
         <div className="flex shrink-0">
-          <CloudBank mode={mode} />
+          <CloudBank night={night} />
         </div>
         <div className="flex shrink-0" aria-hidden>
-          <CloudBank mode={mode} />
+          <CloudBank night={night} />
         </div>
       </div>
     </div>
@@ -1383,12 +1295,23 @@ function StormClouds({ mode, on }: { mode: Mode; on: boolean }) {
 
 export default function TrainExterior({
   running = true,
-  mode = "night",
+  hour = 8,
+  hourRef,
 }: {
   running?: boolean;
-  mode?: Mode;
+  hour?: number;
+  hourRef?: { current: number };
 }) {
-  const t = THEMES[mode];
+  const sky = skyAt(hour);
+  const t = sky.theme;
+  const night = sky.night;
+  // Sky/sun/moon/stars animate imperatively from the live clock. Keep the
+  // first-paint values constant so React never re-binds them and fights the
+  // animation frames; the coarse `hour` still refreshes the object palette.
+  const initialSky = useRef(sky.theme.sky).current;
+  const initialGround = useRef(t.ground).current;
+  const liveHourRef = useRef(hour);
+  liveHourRef.current = hour;
 
   // ---- intermittent weather: rain rolls in and out on random intervals ----
   // Dry spells last ~25-70s, showers ~12-30s. Timers run only while the scene
@@ -1437,6 +1360,49 @@ export default function TrainExterior({
   const ACCEL_MS = 2200; // time to ease back up to full speed
 
   const sceneRootRef = useRef<HTMLDivElement>(null);
+  const sunRef = useRef<HTMLDivElement>(null);
+  const moonRef = useRef<HTMLDivElement>(null);
+  const starsRef = useRef<HTMLDivElement>(null);
+  const groundRef = useRef<HTMLDivElement>(null);
+
+  // Animate the sky gradient, star fade and sun/moon arc every frame straight
+  // from the live clock — no React re-render, so the day/night transition is
+  // smooth even though the heavy SVG palette only updates a couple times/sec.
+  useEffect(() => {
+    let raf = 0;
+    const SUN_HOT =
+      "radial-gradient(circle at 50% 50%, #fff1c2 0%, #ff9a44 44%, rgba(255,120,50,0) 74%)";
+    const SUN_DAY =
+      "radial-gradient(circle at 50% 50%, #fff7d6 0%, #ffe27a 45%, rgba(255,226,122,0) 72%)";
+    const loop = () => {
+      const f = skyFrame((hourRef ?? liveHourRef).current);
+      const root = sceneRootRef.current;
+      if (root) root.style.background = f.sky;
+      if (groundRef.current) groundRef.current.style.background = f.ground;
+      if (starsRef.current)
+        starsRef.current.style.opacity = String(f.starOpacity * 0.9);
+      const sun = sunRef.current;
+      if (sun) {
+        sun.style.left = `${f.sun.x}%`;
+        sun.style.top = `${f.sun.y}%`;
+        sun.style.opacity = f.sun.visible ? "1" : "0";
+        sun.style.background = f.sun.alt < 0.3 ? SUN_HOT : SUN_DAY;
+        sun.style.boxShadow =
+          f.sun.alt < 0.3
+            ? "0 0 78px 30px rgba(255,150,70,0.55)"
+            : "0 0 60px 22px rgba(255,236,150,0.6)";
+      }
+      const moon = moonRef.current;
+      if (moon) {
+        moon.style.left = `${f.moon.x}%`;
+        moon.style.top = `${f.moon.y}%`;
+        moon.style.opacity = f.moon.visible ? "1" : "0";
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [hourRef]);
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const stationWrapRef = useRef<HTMLDivElement>(null);
@@ -1604,48 +1570,51 @@ export default function TrainExterior({
     >
       <div
         ref={sceneRootRef}
-        className="relative h-[100svh] w-full transition-[background] duration-700"
-        style={{ background: t.sky }}
+        className="relative h-[100svh] w-full"
+        style={{ background: initialSky }}
       >
-        {/* Stars (night) */}
-        {t.stars && (
-          <div
-            className="absolute inset-x-0 top-0 h-1/2 opacity-80"
-            style={{
-              backgroundImage:
-                "radial-gradient(1.4px 1.4px at 30px 20px, #fff, transparent), radial-gradient(1.2px 1.2px at 120px 46px, #dfe8ff, transparent), radial-gradient(1.6px 1.6px at 220px 14px, #fff, transparent), radial-gradient(1px 1px at 320px 60px, #cdd8ff, transparent)",
-              backgroundRepeat: "repeat",
-              backgroundSize: "480px 100%",
-            }}
-          />
-        )}
-
-        {/* Sun / moon */}
+        {/* Stars — opacity driven every frame by the rAF clock (fade in at dusk) */}
         <div
-          className="absolute left-1/2 top-5 h-10 w-10 -translate-x-1/2 rounded-full"
-          style={
-            t.sun
-              ? {
-                  background:
-                    "radial-gradient(circle at 50% 50%, #fff7d6 0%, #ffe27a 45%, rgba(255,226,122,0) 72%)",
-                  boxShadow: "0 0 60px 22px rgba(255,236,150,0.6)",
-                }
-              : {
-                  background:
-                    "radial-gradient(circle at 38% 38%, #f4f1e6 0%, #d9d4c3 55%, #b9b4a3 100%)",
-                  boxShadow: "0 0 30px 9px rgba(220,228,255,0.35)",
-                }
-          }
+          ref={starsRef}
+          className="absolute inset-x-0 top-0 h-1/2"
+          style={{
+            opacity: 0,
+            backgroundImage:
+              "radial-gradient(1.4px 1.4px at 30px 20px, #fff, transparent), radial-gradient(1.2px 1.2px at 120px 46px, #dfe8ff, transparent), radial-gradient(1.6px 1.6px at 220px 14px, #fff, transparent), radial-gradient(1px 1px at 320px 60px, #cdd8ff, transparent)",
+            backgroundRepeat: "repeat",
+            backgroundSize: "480px 100%",
+          }}
+        />
+
+        {/* Sun — rides an arc east→west; warm and low at dawn/dusk */}
+        <div
+          ref={sunRef}
+          className="absolute h-10 w-10 rounded-full will-change-transform"
+          style={{ transform: "translate(-50%, -50%)", opacity: 0 }}
+        />
+
+        {/* Moon — rides the night arc */}
+        <div
+          ref={moonRef}
+          className="absolute h-9 w-9 rounded-full will-change-transform"
+          style={{
+            transform: "translate(-50%, -50%)",
+            opacity: 0,
+            background:
+              "radial-gradient(circle at 38% 38%, #f4f1e6 0%, #d9d4c3 55%, #b9b4a3 100%)",
+            boxShadow: "0 0 30px 9px rgba(220,228,255,0.35)",
+          }}
         />
 
         {/* Ground plane to the horizon */}
         <div
+          ref={groundRef}
           className="absolute inset-x-0 bottom-0 z-[1]"
-          style={{ height: "52%", background: t.ground }}
+          style={{ height: "52%", background: initialGround }}
         />
 
         {/* Storm clouds roll into the sky while it rains */}
-        <StormClouds mode={mode} on={raining} />
+        <StormClouds night={night} on={raining} />
 
         {/* Birds */}
         <Band running={running} duration={30} bottom="74%" height={40} z={2} opacity={0.8}>
@@ -1700,7 +1669,7 @@ export default function TrainExterior({
                     c={t.bld}
                     win={t.win}
                     fig={t.near}
-                    night={mode === "night"}
+                    night={night}
                     height="calc(min(15vh, 9vw) + 200px)"
                     signalRef={(el) => {
                       signalRefs.current[i] = el;
@@ -1720,7 +1689,7 @@ export default function TrainExterior({
           )}
           style={{
             backgroundImage: `repeating-linear-gradient(90deg, ${
-              mode === "night" ? "#0c1a12" : "#3f7a45"
+              night ? "#0c1a12" : "#3f7a45"
             } 0 3px, transparent 3px 12px)`,
             backgroundRepeat: "repeat-x",
             animationDuration: "0.15s",
@@ -1737,7 +1706,7 @@ export default function TrainExterior({
               className="absolute inset-x-0 bottom-[4px] h-[26px] rounded-[3px]"
               style={{
                 background:
-                  mode === "night"
+                  night
                     ? "linear-gradient(180deg,#2b303c 0%,#141821 100%)"
                     : "linear-gradient(180deg,#c3b8a2 0%,#8f8471 100%)",
                 boxShadow: "0 8px 14px rgba(0,0,0,0.4)",
@@ -1776,15 +1745,15 @@ export default function TrainExterior({
             {/* the train */}
             <div className="absolute bottom-[12px] left-1/2 -translate-x-1/2">
               <div className={cls("flex items-end", running && "animate-train-clack")}>
-                <Coach running={running} night={mode === "night"} />
-                <Coach running={running} night={mode === "night"} />
-                <Loco running={running} night={mode === "night"} />
+                <Coach running={running} night={night} />
+                <Coach running={running} night={night} />
+                <Loco running={running} night={night} />
               </div>
             </div>
           </div>
         </div>
         {/* Intermittent rain overlay — sits above the whole scene, fades in/out */}
-        <Rain mode={mode} on={raining} />
+        <Rain night={night} on={raining} />
         {/* Lightning flash — a bright one-shot overlay replayed on each strike */}
         <div
           key={flashCount}
