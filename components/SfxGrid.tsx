@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { AudioEngine } from "@/hooks/useAudioEngine";
+import { SfxIcon } from "@/components/icons";
 
 /**
  * Interactive environment sound board — the tactile "play with the carriage"
@@ -19,10 +20,15 @@ interface SfxTile {
   label: string;
   hint: string;
   src: string;
-  icon: string;
   /** Optional pitch jitter so repeat taps don't feel identical. */
   rate?: number;
   volume?: number;
+  /** Optional hard trim (ms): stop a long recording early as a short blast. */
+  trimMs?: number;
+  /** Optional: skip the head and play only the last N ms (e.g. a tail horn). */
+  keepLastMs?: number;
+  /** Optional: seek to this many ms from the start before playing. */
+  startMs?: number;
   kind: "ambient" | "chain";
 }
 
@@ -31,8 +37,7 @@ const SFX_TILES: SfxTile[] = [
     id: "chai",
     label: "Chai, Chai!",
     hint: "The platform vendor's sing-song call",
-    src: "/audio/sfx/chai-vendor.wav",
-    icon: "\u2615",
+    src: "/audio/sfx/chai-chai.mp3",
     volume: 0.9,
     kind: "ambient",
   },
@@ -40,8 +45,7 @@ const SFX_TILES: SfxTile[] = [
     id: "horn",
     label: "Loco Horn",
     hint: "Long berth-corner warning blast",
-    src: "/audio/sfx/train-horn.wav",
-    icon: "\uD83D\uDFE1",
+    src: "/audio/sfx/horn-running.mp3",
     volume: 1,
     kind: "ambient",
   },
@@ -50,7 +54,6 @@ const SFX_TILES: SfxTile[] = [
     label: "Guard's Whistle",
     hint: "All-aboard shriek before departure",
     src: "/audio/sfx/whistle.wav",
-    icon: "\uD83D\uDE9D",
     rate: 1.05,
     volume: 0.85,
     kind: "ambient",
@@ -60,7 +63,6 @@ const SFX_TILES: SfxTile[] = [
     label: "Wheel Clack",
     hint: "Joint-by-joint sleeper rhythm",
     src: "/audio/sfx/wheel-clack.wav",
-    icon: "\uD83D\uDE82",
     rate: 0.95,
     volume: 0.8,
     kind: "ambient",
@@ -69,8 +71,7 @@ const SFX_TILES: SfxTile[] = [
     id: "announcer",
     label: "Station Announce",
     hint: '"Kripaya pichli batayan gayi..."',
-    src: "/audio/sfx/announcer.wav",
-    icon: "\uD83D\uDCE3",
+    src: "/audio/sfx/station-announce.mp3",
     volume: 0.95,
     kind: "ambient",
   },
@@ -79,7 +80,6 @@ const SFX_TILES: SfxTile[] = [
     label: "Emergency Chain",
     hint: "Pull to jolt the carriage",
     src: "/audio/sfx/chain-pull.wav",
-    icon: "⛓️",
     volume: 1,
     kind: "chain",
   },
@@ -100,7 +100,13 @@ export default function SfxGrid({ engine, compact = false }: SfxGridProps) {
       // Any tap is a valid user gesture — make sure ambience is unlocked too.
       if (!engine.unlocked) engine.unlock();
 
-      engine.playSfx(tile.src, { volume: tile.volume, rate: tile.rate });
+      engine.playSfx(tile.src, {
+        volume: tile.volume,
+        rate: tile.rate,
+        trimMs: tile.trimMs,
+        keepLastMs: tile.keepLastMs,
+        startMs: tile.startMs,
+      });
 
       setActiveId(tile.id);
       window.setTimeout(
@@ -137,16 +143,11 @@ export default function SfxGrid({ engine, compact = false }: SfxGridProps) {
               type="button"
               onClick={() => trigger(tile)}
               aria-pressed={isActive}
+              data-on={isActive ? "true" : undefined}
               title={tile.hint}
-              className={[
-                "flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition active:scale-95 sm:text-[11px]",
-                isChain
-                  ? "border-signal-red/50 bg-signal-red/10 text-signal-red/90 hover:bg-signal-red/20"
-                  : "border-coach-cream/15 bg-berth-deep text-coach-cream/80 hover:border-signal-amber/40",
-                isActive ? "border-signal-amber/70 text-signal-amber" : "",
-              ].join(" ")}
+              className={isChain ? "hud-chip hud-chip--red" : "hud-chip"}
             >
-              <span aria-hidden>{tile.icon}</span>
+              <SfxIcon id={tile.id} className="ico" />
               <span className="hidden sm:inline">{tile.label}</span>
             </button>
           );
@@ -193,8 +194,8 @@ export default function SfxGrid({ engine, compact = false }: SfxGridProps) {
                 isActive ? "scale-[0.97] border-signal-amber/70" : "scale-100",
               ].join(" ")}
             >
-              <span className="text-2xl leading-none" aria-hidden>
-                {tile.icon}
+              <span className="text-coach-cream/80" aria-hidden>
+                <SfxIcon id={tile.id} className="h-6 w-6" />
               </span>
               <span className="font-board text-sm font-bold uppercase tracking-wider text-coach-cream glow-amber">
                 {tile.label}

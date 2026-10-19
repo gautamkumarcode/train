@@ -28,8 +28,10 @@ const cls = (...v: (string | false | null | undefined)[]) =>
 // Flip this to true to bring the viewpoint switch back.
 const SHOW_WINDOW_VIEW = false;
 
-// One full day→night→day cycle over this many seconds (auto demo).
-const CYCLE_SECONDS = 180;
+// One full day→night→day cycle over this many seconds (auto demo). Raised so a
+// complete cycle takes a long, calm arc — more of the world scrolls by (more
+// distance travelled) before the sky returns to where it started.
+const CYCLE_SECONDS = 480;
 // The heavy SVG scene only re-renders (for object palette) at this cadence; the
 // sky/sun/moon/stars animate smoothly between steps via a shared live ref.
 const COARSE_MS = 2000;
@@ -40,8 +42,20 @@ type CycleSel = "auto" | "day" | "night";
 
 export default function TrainJourney({
   running = true,
+  onArrive,
+  onDepart,
+  onStop,
+  onLeave,
 }: {
   running?: boolean;
+  /** Fired when the train stops at a station (for the arrival horn). */
+  onArrive?: () => void;
+  /** Fired when the train pulls out (for the departure/running horn). */
+  onDepart?: () => void;
+  /** Fired the instant the train is fully halted at a station. */
+  onStop?: () => void;
+  /** Fired when the train begins pulling out of a station. */
+  onLeave?: () => void;
 }) {
   const [view, setView] = useState<SceneView>(
     SHOW_WINDOW_VIEW ? "window" : "outside",
@@ -118,7 +132,15 @@ export default function TrainJourney({
       {view === "window" ? (
         <TrainWindowView running={running} mode={derivedMode} />
       ) : (
-        <TrainExterior running={running} hour={hour} hourRef={hourRef} />
+        <TrainExterior
+          running={running}
+          hour={hour}
+          hourRef={hourRef}
+          onArrive={onArrive}
+          onDepart={onDepart}
+          onStop={onStop}
+          onLeave={onLeave}
+        />
       )}
 
       {/* Overlaid controls (bottom of the scene) */}

@@ -1,6 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  CloseIcon,
+  MusicIcon,
+  MuteIcon,
+  PauseIcon,
+  PlayIcon,
+  VolumeIcon,
+} from "@/components/icons";
 
 /**
  * YouTubePlayer — plays a pasted YouTube track/song non-stop via the official
@@ -91,6 +99,9 @@ export default function YouTubePlayer({ defaultUrl = "" }: YouTubePlayerProps) {
   const [error, setError] = useState<string | null>(null);
   // The floating top-right player stays hidden until a valid link is entered.
   const [hasLink, setHasLink] = useState(false);
+  // YouTube is an opt-in "bring your own song" extra, so its link box starts
+  // collapsed to a single chip — the lo-fi ambience is the default experience.
+  const [expanded, setExpanded] = useState(false);
 
   // Instantiate the player once, into a throwaway child of the stable wrapper.
   useEffect(() => {
@@ -250,7 +261,7 @@ export default function YouTubePlayer({ defaultUrl = "" }: YouTubePlayerProps) {
             <div ref={hostRef} className="absolute inset-0" />
             {!playing && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/70 px-2 text-center text-[9px] uppercase tracking-widest text-coach-cream/40">
-                ▶ loading…
+                Loading…
               </div>
             )}
           </div>
@@ -263,64 +274,86 @@ export default function YouTubePlayer({ defaultUrl = "" }: YouTubePlayerProps) {
         </p>
       </div>
 
-      {/* Compact song controls, meant to dock at the right end of the top HUD. */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-coach-cream/10 bg-black/50 px-2 py-1.5 backdrop-blur-sm">
-        <span aria-hidden className="text-[11px]">
-          🎵
-        </span>
-        <form onSubmit={onSubmit} className="flex items-center gap-1.5">
-          <input
-            type="text"
-            inputMode="url"
-            autoComplete="off"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste YouTube link…"
-            className="w-28 rounded-md border border-coach-cream/20 bg-berth-night px-2 py-1 text-xs text-coach-cream placeholder:text-coach-cream/25 focus:border-signal-amber/60 focus:outline-none sm:w-44"
-            aria-label="YouTube link or video ID"
-          />
-          <button
-            type="submit"
-            className="rounded-md border border-signal-amber/60 bg-signal-amber/10 px-2.5 py-1 font-board text-[10px] font-bold uppercase tracking-widest text-signal-amber transition hover:bg-signal-amber/20"
-          >
-            ▶ Play
-          </button>
-        </form>
-
-        {hasLink && (
-          <>
-            <button
-              type="button"
-              onClick={togglePlay}
-              disabled={!ready}
-              aria-label={playing ? "Pause" : "Play"}
-              className="rounded-full border border-coach-cream/20 px-2 py-1 text-[11px] text-coach-cream/80 transition enabled:hover:border-signal-amber/50 disabled:opacity-30"
-            >
-              {playing ? "⏸" : "▶"}
-            </button>
-            <button
-              type="button"
-              onClick={toggleMute}
-              disabled={!ready}
-              aria-label={muted ? "Unmute" : "Mute"}
-              className="rounded-full border border-coach-cream/20 px-2 py-1 text-[11px] text-coach-cream/80 transition enabled:hover:border-signal-amber/50 disabled:opacity-30"
-            >
-              {muted ? "🔇" : "🔊"}
-            </button>
+      {/* Compact song controls, docked at the right end of the top HUD.
+          Collapsed to a single "Your Song" chip by default (so the lo-fi
+          streams stay the primary music), it expands to the link box on demand. */}
+      {expanded ? (
+        <div className="hud-panel">
+          <MusicIcon className="h-3.5 w-3.5 text-coach-cream/60" />
+          <form onSubmit={onSubmit} className="flex items-center gap-1.5">
             <input
-              type="range"
-              min={0}
-              max={100}
-              value={volume}
-              onChange={(e) => onVolume(Number(e.target.value))}
-              className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-coach-cream/20 accent-signal-amber"
-              aria-label="YouTube volume"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste YouTube link…"
+              className="hud-input w-28 sm:w-40"
+              aria-label="YouTube link or video ID"
             />
-          </>
-        )}
+            <button type="submit" className="hud-chip">
+              <PlayIcon className="ico" />
+              <span className="hidden sm:inline">Play</span>
+            </button>
+          </form>
 
-        {error && <span className="text-[10px] text-signal-red">{error}</span>}
-      </div>
+          {hasLink && (
+            <>
+              <button
+                type="button"
+                onClick={togglePlay}
+                disabled={!ready}
+                aria-label={playing ? "Pause" : "Play"}
+                className="hud-chip disabled:opacity-30"
+              >
+                {playing ? <PauseIcon className="ico" /> : <PlayIcon className="ico" />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleMute}
+                disabled={!ready}
+                aria-label={muted ? "Unmute" : "Mute"}
+                className="hud-chip disabled:opacity-30"
+              >
+                {muted ? <MuteIcon className="ico" /> : <VolumeIcon className="ico" />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={volume}
+                onChange={(e) => onVolume(Number(e.target.value))}
+                className="hud-range w-16"
+                aria-label="YouTube volume"
+              />
+            </>
+          )}
+
+          {error && <span className="text-[10px] text-signal-red">{error}</span>}
+
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Close song box"
+            title="Close"
+            className="hud-chip"
+          >
+            <CloseIcon className="ico" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          data-on={playing ? "true" : undefined}
+          aria-label="Play your own song from YouTube"
+          title="Play your own song (YouTube)"
+          className="hud-chip"
+        >
+          <MusicIcon className="ico" />
+          <span className="hidden sm:inline">Your Song</span>
+        </button>
+      )}
     </>
   );
 }

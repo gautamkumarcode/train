@@ -186,3 +186,190 @@ body {
   animation: lightning-flash 800ms ease-out 1;
 }
 
+/* ------------------------------------------------------------------ */
+/* Top-HUD sound controls — one shared, professional visual language.  */
+/* Used by page.tsx (ambience/streams), SfxGrid (sfx chips) and        */
+/* YouTubePlayer so every control in the bar looks like it belongs.    */
+/* ------------------------------------------------------------------ */
+.hud-panel {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.9rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgba(244, 233, 210, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(17, 26, 51, 0.66),
+    rgba(5, 7, 15, 0.74)
+  );
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(244, 233, 210, 0.05),
+    0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.hud-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 0.15rem;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(244, 233, 210, 0.18),
+    transparent
+  );
+}
+
+.hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  padding: 0.34rem 0.6rem;
+  line-height: 1;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+  color: rgba(244, 233, 210, 0.78);
+  border: 1px solid rgba(244, 233, 210, 0.14);
+  background: linear-gradient(
+    180deg,
+    rgba(28, 43, 77, 0.5),
+    rgba(11, 16, 32, 0.6)
+  );
+  transition: color 0.15s, border-color 0.15s, background 0.15s,
+    box-shadow 0.15s, transform 0.05s;
+}
+
+.hud-chip:hover {
+  color: #f4e9d2;
+  border-color: rgba(245, 179, 1, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(36, 52, 88, 0.6),
+    rgba(15, 22, 42, 0.72)
+  );
+}
+
+.hud-chip:active {
+  transform: scale(0.95);
+}
+
+.hud-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 179, 1, 0.5);
+}
+
+.hud-chip .ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  opacity: 0.92;
+}
+
+/* On / active state — amber by default. */
+.hud-chip[data-on="true"] {
+  color: #f5b301;
+  border-color: rgba(245, 179, 1, 0.7);
+  background: linear-gradient(
+    180deg,
+    rgba(245, 179, 1, 0.16),
+    rgba(245, 179, 1, 0.05)
+  );
+  box-shadow: 0 0 0 1px rgba(245, 179, 1, 0.18), 0 0 14px rgba(245, 179, 1, 0.22);
+}
+
+/* Green variant (lo-fi streams) when on. */
+.hud-chip--green[data-on="true"] {
+  color: #6fe095;
+  border-color: rgba(31, 138, 76, 0.85);
+  background: linear-gradient(
+    180deg,
+    rgba(31, 138, 76, 0.24),
+    rgba(31, 138, 76, 0.06)
+  );
+  box-shadow: 0 0 0 1px rgba(31, 138, 76, 0.24), 0 0 14px rgba(31, 138, 76, 0.3);
+}
+
+/* Red variant (emergency chain) — always red-tinted, glows on press. */
+.hud-chip--red {
+  color: rgba(224, 108, 108, 0.95);
+  border-color: rgba(214, 69, 69, 0.42);
+  background: linear-gradient(
+    180deg,
+    rgba(214, 69, 69, 0.14),
+    rgba(11, 16, 32, 0.6)
+  );
+}
+
+.hud-chip--red:hover {
+  color: #ff9a9a;
+  border-color: rgba(214, 69, 69, 0.75);
+}
+
+.hud-chip--red[data-on="true"] {
+  color: #ff9a9a;
+  border-color: rgba(214, 69, 69, 0.9);
+  box-shadow: 0 0 0 1px rgba(214, 69, 69, 0.32), 0 0 14px rgba(214, 69, 69, 0.38);
+}
+
+/* Text link input. */
+.hud-input {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(244, 233, 210, 0.16);
+  background: rgba(11, 16, 32, 0.7);
+  color: #f4e9d2;
+  padding: 0.32rem 0.55rem;
+  font-size: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.hud-input::placeholder {
+  color: rgba(244, 233, 210, 0.28);
+}
+
+.hud-input:focus {
+  outline: none;
+  border-color: rgba(245, 179, 1, 0.6);
+  box-shadow: 0 0 0 2px rgba(245, 179, 1, 0.15);
+}
+
+/* Range slider — slim track + glowing amber thumb. */
+.hud-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(244, 233, 210, 0.18);
+  cursor: pointer;
+}
+
+.hud-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f5b301;
+  border: 2px solid #0b1020;
+  box-shadow: 0 0 6px rgba(245, 179, 1, 0.6);
+}
+
+.hud-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #f5b301;
+  box-shadow: 0 0 6px rgba(245, 179, 1, 0.6);
+}
+
+.hud-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(244, 233, 210, 0.18);
+}
+

@@ -149,6 +149,318 @@ const WaterTank = ({ c }: { c: string }) => (
     <rect x={8} y={14} width={28} height={6} fill="#05070f" opacity={0.22} />
   </Svg>
 );
+// A taller apartment block: window grid, flat roof with a rooftop tank.
+const Apartment = ({ c, win }: { c: string; win: string }) => (
+  <Svg w={72} h={120}>
+    <rect x={8} y={12} width={56} height={108} fill={c} />
+    <rect x={8} y={12} width={56} height={6} fill="#05070f" opacity={0.22} />
+    <rect x={40} y={2} width={16} height={10} rx={2} fill={c} />
+    {Array.from({ length: 15 }).map((_, k) => {
+      const col = k % 3;
+      const row = Math.floor(k / 3);
+      return (
+        <rect
+          key={k}
+          x={14 + col * 18}
+          y={24 + row * 18}
+          width={11}
+          height={12}
+          fill={win}
+          opacity={0.85}
+        />
+      );
+    })}
+    <rect x={30} y={104} width={12} height={16} fill="#05070f" opacity={0.7} />
+  </Svg>
+);
+// A festive string of small bulbs (chhuk-bhukia) draped along an awning edge.
+// Steady by day; at night each bulb glows and twinkles out of phase (SMIL).
+const BulbString = ({
+  x1,
+  y1,
+  x2,
+  y2,
+  night,
+  count = 8,
+  sag = 3,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  night: boolean;
+  count?: number;
+  sag?: number;
+}) => {
+  const colors = ["#ff5a5a", "#ffd24a", "#66e07a", "#5ab8ff", "#ff8ad6"];
+  const qx = (x1 + x2) / 2;
+  const qy = (y1 + y2) / 2 + sag * 2;
+  const bulbs = Array.from({ length: count + 1 }).map((_, k) => {
+    const t = k / count;
+    const mt = 1 - t;
+    const bx = mt * mt * x1 + 2 * mt * t * qx + t * t * x2;
+    const by = mt * mt * y1 + 2 * mt * t * qy + t * t * y2;
+    const col = colors[k % colors.length];
+    const dur = 0.9 + (k % 4) * 0.2;
+    const begin = k === 0 ? "0s" : `-${(k * 0.17).toFixed(2)}s`;
+    return (
+      <g key={k}>
+        {night && <circle cx={bx} cy={by} r={3.2} fill={col} opacity={0.4} />}
+        <circle cx={bx} cy={by} r={1.5} fill={col}>
+          {night && (
+            <animate
+              attributeName="opacity"
+              values="1;0.3;1"
+              dur={`${dur}s`}
+              begin={begin}
+              repeatCount="indefinite"
+            />
+          )}
+        </circle>
+      </g>
+    );
+  });
+  return (
+    <g>
+      <path
+        d={`M${x1} ${y1} Q${qx} ${qy} ${x2} ${y2}`}
+        stroke="#2a2f3a"
+        strokeWidth={0.5}
+        fill="none"
+      />
+      {bulbs}
+    </g>
+  );
+};
+
+// A roadside shop / dhaba: striped awning + a signboard naming what it sells,
+// a bulb string, and (when `fig` is passed) a shopkeeper + a customer.
+const SHOP_NAMES = [
+  "PUNCHAR SHOP",
+  "DHABA",
+  "CHAI STALL",
+  "SWEETS",
+  "MEDICAL",
+  "HARDWARE",
+  "PAN SHOP",
+  "DAIRY",
+];
+const Shop = ({
+  c,
+  win,
+  name = "SHOP",
+  fig,
+  night = false,
+}: {
+  c: string;
+  win: string;
+  name?: string;
+  fig?: string;
+  night?: boolean;
+}) => (
+  <Svg w={64} h={54}>
+    <rect x={8} y={22} width={48} height={32} fill={c} />
+    {/* striped awning */}
+    <rect x={6} y={14} width={52} height={7} rx={1} fill="#c0392b" />
+    {Array.from({ length: 6 }).map((_, k) => (
+      <rect key={k} x={6 + k * 8.7} y={14} width={4.3} height={7} fill="#e8d9b5" opacity={0.9} />
+    ))}
+    {/* signboard carrying the shop's name */}
+    <rect x={8} y={3} width={48} height={10} rx={1} fill="#ece3cf" stroke="#0b1020" strokeWidth={0.5} />
+    <text
+      x={32}
+      y={10.2}
+      textAnchor="middle"
+      fontFamily="sans-serif"
+      fontSize={6}
+      fontWeight="bold"
+      fill="#1a2233"
+      textLength={44}
+      lengthAdjust="spacingAndGlyphs"
+    >
+      {name}
+    </text>
+    {/* lit counter + doorway */}
+    <rect x={13} y={30} width={18} height={16} fill={win} opacity={0.9} />
+    <rect x={38} y={28} width={14} height={26} fill="#05070f" opacity={0.6} />
+    {/* chhuk-bhukia bulb string under the awning */}
+    <BulbString x1={8} y1={22} x2={56} y2={22} night={night} count={7} sag={2.5} />
+    {/* shopkeeper by the door + a customer at the counter */}
+    {fig && (
+      <g fill={fig}>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 0; 0 -0.5; 0 0"
+            dur="2.1s"
+            repeatCount="indefinite"
+          />
+          <circle cx={45} cy={42} r={2} />
+          <rect x={43.5} y={44} width={3} height={10} rx={1.2} />
+        </g>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 0; 0 -0.5; 0 0"
+            dur="2.6s"
+            begin="-0.7s"
+            repeatCount="indefinite"
+          />
+          <circle cx={20} cy={44} r={1.9} />
+          <rect x={18.6} y={46} width={2.8} height={8} rx={1.2} />
+        </g>
+      </g>
+    )}
+  </Svg>
+);
+// A roadside dhaba: an open-front shed under a striped tarpaulin, a green
+// "DHABA" board, a kadai over a fire (glowing at night) and a charpai cot.
+const Dhaba = ({
+  c,
+  win,
+  fig,
+  night = false,
+}: {
+  c: string;
+  win: string;
+  fig?: string;
+  night?: boolean;
+}) => (
+  <Svg w={110} h={70}>
+    {/* back wall + dark open front */}
+    <rect x={16} y={26} width={80} height={40} fill={c} />
+    <rect x={24} y={38} width={64} height={28} fill={night ? "#0a0f1c" : "#2a2118"} opacity={0.9} />
+    {night && <rect x={24} y={38} width={64} height={28} fill={win} opacity={0.22} />}
+    {/* striped tarpaulin awning */}
+    <polygon points="10,26 100,26 96,15 14,15" fill="#e8d9b5" />
+    {Array.from({ length: 6 }).map((_, k) => (
+      <polygon
+        key={k}
+        points={`${14 + k * 14},15 ${21 + k * 14},15 ${18 + k * 14},26 ${11 + k * 14},26`}
+        fill="#c0392b"
+        opacity={0.9}
+      />
+    ))}
+    {/* support poles */}
+    <rect x={12} y={26} width={2.5} height={40} fill={c} />
+    <rect x={97} y={26} width={2.5} height={40} fill={c} />
+    {/* signboard */}
+    <rect x={32} y={2} width={46} height={12} rx={1} fill="#ece3cf" stroke="#0b1020" strokeWidth={0.5} />
+    <text x={55} y={11} textAnchor="middle" fontFamily="sans-serif" fontSize={8} fontWeight="bold" fill="#134a2b">
+      DHABA
+    </text>
+    {/* chhuk-bhukia bulb string along the awning front */}
+    <BulbString x1={12} y1={26} x2={98} y2={26} night={night} count={11} sag={3} />
+    {/* kadai over a fire */}
+    <ellipse cx={50} cy={58} rx={11} ry={3} fill="#20242e" />
+    <path d="M39 58 Q50 50 61 58 Z" fill="#39414c" />
+    {night && (
+      <circle cx={50} cy={60} r={3} fill="#ff8a3c" opacity={0.85}>
+        <animate attributeName="r" values="2.6;3.8;2.6" dur="0.6s" repeatCount="indefinite" />
+      </circle>
+    )}
+    {/* charpai cot in front */}
+    <g fill="#7a5a34">
+      <rect x={68} y={57} width={22} height={2.5} />
+      <rect x={69} y={59} width={2} height={7} />
+      <rect x={88} y={59} width={2} height={7} />
+    </g>
+    {/* people: a cook at the kadai, a patron on the charpai, a customer standing */}
+    {fig && (
+      <g fill={fig}>
+        <g>
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -0.4; 0 0" dur="1.7s" repeatCount="indefinite" />
+          <circle cx={66} cy={46} r={2.4} />
+          <rect x={64} y={48} width={4} height={12} rx={1.4} />
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -0.4; 0 0" dur="2.3s" begin="-0.5s" repeatCount="indefinite" />
+          <circle cx={79} cy={51} r={2.3} />
+          <rect x={77.2} y={53} width={3.6} height={5} rx={1.4} />
+        </g>
+        <g>
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -0.5; 0 0" dur="2s" begin="-1s" repeatCount="indefinite" />
+          <circle cx={30} cy={50} r={2.4} />
+          <rect x={28} y={52} width={4} height={14} rx={1.4} />
+        </g>
+      </g>
+    )}
+  </Svg>
+);
+// An industrial grain-silo cluster.
+const Silo = ({ c }: { c: string }) => (
+  <Svg w={64} h={110}>
+    {[6, 26, 46].map((sx, k) => (
+      <g key={k}>
+        <rect x={sx} y={20} width={14} height={90} rx={2} fill={c} />
+        <ellipse cx={sx + 7} cy={20} rx={7} ry={4} fill={c} />
+        <ellipse cx={sx + 7} cy={20} rx={7} ry={4} fill="#05070f" opacity={0.18} />
+      </g>
+    ))}
+    <rect x={6} y={54} width={54} height={4} fill="#05070f" opacity={0.2} />
+  </Svg>
+);
+// A lattice electricity pylon (transmission tower) — a constant of railway corridors.
+const Pylon = ({ c }: { c: string }) => (
+  <Svg w={70} h={150}>
+    <g stroke={c} strokeWidth={2.2} fill="none" strokeLinecap="round">
+      <path d="M18 150 L30 34 M52 150 L40 34 M30 34 L40 34" />
+      <path d="M22 122 L48 122 M25 98 L45 98 M28 74 L42 74 M30 52 L40 52" />
+      <path d="M22 122 L45 98 M48 122 L25 98 M25 98 L42 74 M45 98 L28 74 M28 74 L40 52 M42 74 L30 52" />
+      <path d="M6 44 L64 44 M12 64 L58 64" />
+    </g>
+    <g fill={c}>
+      <rect x={6} y={44} width={2} height={6} />
+      <rect x={62} y={44} width={2} height={6} />
+      <rect x={12} y={64} width={2} height={5} />
+      <rect x={56} y={64} width={2} height={5} />
+    </g>
+  </Svg>
+);
+// A factory shed with a saw-tooth roof and a chimney trailing drifting smoke;
+// at night a red aviation beacon blinks on the stack.
+const Factory = ({
+  c,
+  win,
+  night = false,
+}: {
+  c: string;
+  win: string;
+  night?: boolean;
+}) => (
+  <Svg w={104} h={96}>
+    <rect x={4} y={48} width={80} height={48} fill={c} />
+    <polygon
+      points="4,48 20,34 20,48 36,34 36,48 52,34 52,48 68,34 68,48 84,34 84,48"
+      fill={c}
+    />
+    {Array.from({ length: 4 }).map((_, k) => (
+      <rect key={k} x={12 + k * 18} y={62} width={10} height={10} fill={win} opacity={0.85} />
+    ))}
+    <rect x={84} y={16} width={12} height={80} fill={c} />
+    <rect x={84} y={16} width={12} height={5} fill="#05070f" opacity={0.3} />
+    {/* drifting smoke */}
+    <g fill={night ? "#3a4256" : "#c9ccd4"}>
+      <circle cx={90} cy={12} r={3} opacity={0.7}>
+        <animate attributeName="cy" values="12;-20" dur="4s" repeatCount="indefinite" />
+        <animate attributeName="r" values="3;9" dur="4s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.7;0" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={90} cy={12} r={3} opacity={0.7}>
+        <animate attributeName="cy" values="12;-20" dur="4s" begin="-2s" repeatCount="indefinite" />
+        <animate attributeName="r" values="3;9" dur="4s" begin="-2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.7;0" dur="4s" begin="-2s" repeatCount="indefinite" />
+      </circle>
+    </g>
+    {night && (
+      <circle cx={90} cy={17} r={1.7} fill="#ff4d4d">
+        <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+      </circle>
+    )}
+  </Svg>
+);
 // A railway station: platform, pitched-roof building, lit windows, a blue
 // name-board, platform lamp-posts (with a warm glow at night) and a few
 // travellers waiting on the platform. A contrasting outline + drop-shadow keep
@@ -222,10 +534,44 @@ const Station = ({
           const hr = child ? 1.2 : 1.5;
           const bh = child ? 4 : 5.6;
           const hy = 85 - bh - hr; // head centre so feet land on y85
+          const bob = 1.3 + (idx % 4) * 0.22; // idle breathing bob
+          const sway = 2.1 + (idx % 3) * 0.4; // shifting weight
+          const begin = idx * 0.17; // stagger so no two move alike
           return (
-            <g key={`p${px}`}>
-              <circle cx={px} cy={hy} r={hr} />
-              <rect x={px - 1.3} y={hy + hr} width={2.6} height={bh} rx={1.2} />
+            <g
+              key={`p${px}`}
+              style={{
+                // by night the crowd shuffles into the station building: slide
+                // toward the door (x105) and fade, while still idling (SMIL)
+                opacity: night ? 0 : 1,
+                transform: night
+                  ? `translate(${(105 - px) * 0.5}px, -3px)`
+                  : "none",
+                transition: "opacity 1200ms ease-in, transform 1200ms ease-in",
+              }}
+            >
+              <g>
+                <animateTransform
+                  attributeName="transform"
+                  type="translate"
+                  values="0 0; 0 -0.5; 0 0"
+                  dur={`${bob}s`}
+                  begin={`${begin}s`}
+                  repeatCount="indefinite"
+                />
+                <g>
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    values={`-2 ${px} 85; 2 ${px} 85; -2 ${px} 85`}
+                    dur={`${sway}s`}
+                    begin={`${begin}s`}
+                    repeatCount="indefinite"
+                  />
+                  <circle cx={px} cy={hy} r={hr} />
+                  <rect x={px - 1.3} y={hy + hr} width={2.6} height={bh} rx={1.2} />
+                </g>
+              </g>
             </g>
           );
         })}
@@ -248,7 +594,17 @@ const Station = ({
 };
 // A village home with life around it: a footpath to the road, an adult by the
 // door, children playing with a ball, a resting cow and hens in the yard.
-const HomeYard = ({ c, win, fig }: { c: string; win: string; fig: string }) => (
+const HomeYard = ({
+  c,
+  win,
+  fig,
+  night = false,
+}: {
+  c: string;
+  win: string;
+  fig: string;
+  night?: boolean;
+}) => (
   <Svg w={176} h={96}>
     {/* footpath leading from the door down to the road in front */}
     <polygon points="80,72 96,72 112,96 62,96" fill={fig} opacity={0.16} />
@@ -259,21 +615,80 @@ const HomeYard = ({ c, win, fig }: { c: string; win: string; fig: string }) => (
     <rect x={82} y={58} width={12} height={16} fill="#05070f" opacity={0.7} />
     <rect x={62} y={52} width={10} height={9} fill={win} opacity={0.9} />
     <rect x={104} y={52} width={10} height={9} fill={win} opacity={0.75} />
-    {/* adult by the door */}
-    <g fill={fig}>
-      <circle cx={73} cy={63} r={2.4} />
-      <rect x={71} y={65} width={4} height={10} rx={1.6} />
+    {/* adult by the door — idles by day, steps inside when it's night */}
+    <g
+      style={{
+        opacity: night ? 0 : 1,
+        transform: night ? "translate(15px, 5px)" : "none",
+        transition: "opacity 1200ms ease-in, transform 1200ms ease-in",
+      }}
+    >
+      <g fill={fig}>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 0; 0 -0.5; 0 0"
+            dur="1.8s"
+            repeatCount="indefinite"
+          />
+          <circle cx={73} cy={63} r={2.4} />
+          <rect x={71} y={65} width={4} height={10} rx={1.6} />
+        </g>
+      </g>
     </g>
-    {/* children playing, one chasing a ball */}
-    <g fill={fig}>
-      <circle cx={122} cy={79} r={2} />
-      <rect x={120.4} y={81} width={3.2} height={7} rx={1.3} />
-      <circle cx={134} cy={82} r={2} />
-      <rect x={132.4} y={84} width={3.2} height={6} rx={1.3} />
+    {/* the children (and their ball) hop by day, then run indoors at night */}
+    <g
+      style={{
+        opacity: night ? 0 : 1,
+        transform: night ? "translate(-42px, 2px)" : "none",
+        transition: "opacity 1200ms ease-in, transform 1200ms ease-in",
+      }}
+    >
+      <g fill={fig}>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 0; 0 -2.5; 0 0"
+            dur="0.7s"
+            repeatCount="indefinite"
+          />
+          <circle cx={122} cy={79} r={2} />
+          <rect x={120.4} y={81} width={3.2} height={7} rx={1.3} />
+        </g>
+        <g>
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 0; 0 -2.2; 0 0"
+            dur="0.8s"
+            begin="-0.3s"
+            repeatCount="indefinite"
+          />
+          <circle cx={134} cy={82} r={2} />
+          <rect x={132.4} y={84} width={3.2} height={6} rx={1.3} />
+        </g>
+      </g>
+      {/* bouncing ball */}
+      <circle cx={143} cy={90} r={2.2} fill="#eef2ff" opacity={0.85}>
+        <animate
+          attributeName="cy"
+          values="90;84;90"
+          dur="0.8s"
+          repeatCount="indefinite"
+        />
+      </circle>
     </g>
-    <circle cx={143} cy={90} r={2.2} fill="#eef2ff" opacity={0.85} />
-    {/* cow resting near the home */}
+    {/* cow resting near the home — slow breathing */}
     <g fill={fig}>
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        values="0 0; 0 -0.4; 0 0"
+        dur="3s"
+        repeatCount="indefinite"
+      />
       <ellipse cx={38} cy={85} rx={12} ry={5} />
       <rect x={29} y={88} width={2.4} height={7} />
       <rect x={35} y={88} width={2.4} height={7} />
@@ -282,54 +697,204 @@ const HomeYard = ({ c, win, fig }: { c: string; win: string; fig: string }) => (
       <circle cx={52} cy={80} r={3.6} />
       <path d="M49 77 l-2 -4 M55 77 l2 -4" stroke={fig} strokeWidth={1.4} />
     </g>
-    {/* hens pecking in the yard */}
+    {/* hens pecking in the yard — heads dipping to the ground */}
     <g fill={fig}>
       <ellipse cx={100} cy={91} rx={2.6} ry={1.9} />
-      <circle cx={102} cy={89} r={1} />
+      <circle cx={102} cy={89} r={1}>
+        <animate
+          attributeName="cy"
+          values="89;92;89"
+          dur="0.5s"
+          repeatCount="indefinite"
+        />
+      </circle>
       <ellipse cx={110} cy={93} rx={2.6} ry={1.9} />
-      <circle cx={112} cy={91} r={1} />
+      <circle cx={112} cy={91} r={1}>
+        <animate
+          attributeName="cy"
+          values="91;94;91"
+          dur="0.6s"
+          begin="-0.2s"
+          repeatCount="indefinite"
+        />
+      </circle>
     </g>
   </Svg>
 );
-const Cow = ({ c, s = 1 }: { c: string; s?: number }) => (
+const Cow = ({
+  c,
+  s = 1,
+  dur = 2.4,
+  delay = 0,
+}: {
+  c: string;
+  s?: number;
+  dur?: number;
+  delay?: number;
+}) => (
   <Svg w={56} h={36} s={s}>
-    <ellipse cx={26} cy={18} rx={18} ry={9} fill={c} />
-    <rect x={10} y={22} width={3} height={13} fill={c} />
-    <rect x={19} y={22} width={3} height={13} fill={c} />
-    <rect x={33} y={22} width={3} height={13} fill={c} />
-    <rect x={41} y={22} width={3} height={13} fill={c} />
-    <circle cx={47} cy={12} r={6} fill={c} />
-    <rect x={49} y={9} width={7} height={2.5} fill={c} />
-    <path d="M44 6 l-2 -5 M50 6 l2 -5" stroke={c} strokeWidth={2} />
+    <g>
+      {/* slow grazing / breathing bob */}
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        values="0 0; 0 -0.7; 0 0"
+        dur={`${dur}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+      <ellipse cx={26} cy={18} rx={18} ry={9} fill={c} />
+      <rect x={10} y={22} width={3} height={13} fill={c} />
+      <rect x={19} y={22} width={3} height={13} fill={c} />
+      <rect x={33} y={22} width={3} height={13} fill={c} />
+      <rect x={41} y={22} width={3} height={13} fill={c} />
+      <circle cx={47} cy={12} r={6} fill={c} />
+      <rect x={49} y={9} width={7} height={2.5} fill={c} />
+      <path d="M44 6 l-2 -5 M50 6 l2 -5" stroke={c} strokeWidth={2} />
+    </g>
   </Svg>
 );
-const Deer = ({ c, s = 1 }: { c: string; s?: number }) => (
+const Deer = ({
+  c,
+  s = 1,
+  dur = 2.8,
+  delay = 0,
+}: {
+  c: string;
+  s?: number;
+  dur?: number;
+  delay?: number;
+}) => (
   <Svg w={46} h={48} s={s}>
-    <ellipse cx={20} cy={26} rx={13} ry={6} fill={c} />
-    <rect x={10} y={30} width={2} height={16} fill={c} />
-    <rect x={16} y={30} width={2} height={16} fill={c} />
-    <rect x={26} y={30} width={2} height={16} fill={c} />
-    <rect x={30} y={30} width={2} height={16} fill={c} />
-    <path d="M32 24 l7 -9" stroke={c} strokeWidth={3} />
-    <circle cx={40} cy={13} r={3.5} fill={c} />
-    <path d="M38 10 l-2 -7 M42 10 l2 -7" stroke={c} strokeWidth={1.5} />
+    <g>
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        values="0 0; 0 -0.9; 0 0"
+        dur={`${dur}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+      <ellipse cx={20} cy={26} rx={13} ry={6} fill={c} />
+      <rect x={10} y={30} width={2} height={16} fill={c} />
+      <rect x={16} y={30} width={2} height={16} fill={c} />
+      <rect x={26} y={30} width={2} height={16} fill={c} />
+      <rect x={30} y={30} width={2} height={16} fill={c} />
+      {/* neck + head gently lifting */}
+      <g>
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="-6 32 24; 4 32 24; -6 32 24"
+          dur={`${dur}s`}
+          begin={`${delay}s`}
+          repeatCount="indefinite"
+        />
+        <path d="M32 24 l7 -9" stroke={c} strokeWidth={3} />
+        <circle cx={40} cy={13} r={3.5} fill={c} />
+        <path d="M38 10 l-2 -7 M42 10 l2 -7" stroke={c} strokeWidth={1.5} />
+      </g>
+    </g>
   </Svg>
 );
-const Dog = ({ c, s = 1 }: { c: string; s?: number }) => (
+const Dog = ({
+  c,
+  s = 1,
+  dur = 1.2,
+  delay = 0,
+}: {
+  c: string;
+  s?: number;
+  dur?: number;
+  delay?: number;
+}) => (
   <Svg w={36} h={24} s={s}>
-    <ellipse cx={17} cy={14} rx={10} ry={5} fill={c} />
-    <circle cx={28} cy={11} r={4} fill={c} />
-    <rect x={9} y={17} width={2} height={7} fill={c} />
-    <rect x={23} y={17} width={2} height={7} fill={c} />
-    <path d="M7 13 l-6 -4" stroke={c} strokeWidth={2} />
+    <g>
+      {/* little trot bob */}
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        values="0 0; 0 -0.8; 0 0"
+        dur={`${dur}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+      <ellipse cx={17} cy={14} rx={10} ry={5} fill={c} />
+      <circle cx={28} cy={11} r={4} fill={c} />
+      <rect x={9} y={17} width={2} height={7} fill={c} />
+      <rect x={23} y={17} width={2} height={7} fill={c} />
+      {/* wagging tail */}
+      <path d="M7 13 l-6 -4" stroke={c} strokeWidth={2} fill="none">
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="-24 7 13; 24 7 13; -24 7 13"
+          dur={`${dur * 0.35}s`}
+          begin={`${delay}s`}
+          repeatCount="indefinite"
+        />
+      </path>
+    </g>
   </Svg>
 );
-const PersonFig = ({ c, s = 1 }: { c: string; s?: number }) => (
+const PersonFig = ({
+  c,
+  s = 1,
+  dur = 0.7,
+  delay = 0,
+  night = false,
+}: {
+  c: string;
+  s?: number;
+  dur?: number;
+  delay?: number;
+  night?: boolean;
+}) => (
   <Svg w={14} h={32} s={s}>
-    <circle cx={7} cy={5} r={4} fill={c} />
-    <rect x={3} y={9} width={8} height={14} rx={3} fill={c} />
-    <rect x={4} y={22} width={2.5} height={10} fill={c} />
-    <rect x={7.5} y={22} width={2.5} height={10} fill={c} />
+    {/* by night the walker heads off into the dark: the outer group fades +
+        slides (CSS transition) while the inner group keeps walking (SMIL) */}
+    <g
+      style={{
+        opacity: night ? 0 : 1,
+        transform: night ? "translate(24px, 0px)" : "none",
+        transition: "opacity 1300ms ease-in, transform 1300ms ease-in",
+      }}
+    >
+      <g>
+        {/* walking bob */}
+        <animateTransform
+          attributeName="transform"
+          type="translate"
+          values="0 0; 0 -1; 0 0"
+          dur={`${dur}s`}
+          begin={`${delay}s`}
+          repeatCount="indefinite"
+        />
+        <circle cx={7} cy={5} r={4} fill={c} />
+        <rect x={3} y={9} width={8} height={14} rx={3} fill={c} />
+        {/* legs swinging alternately about the hip */}
+        <rect x={4} y={22} width={2.5} height={10} fill={c}>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="18 5.25 22; -18 5.25 22; 18 5.25 22"
+            dur={`${dur}s`}
+            begin={`${delay}s`}
+            repeatCount="indefinite"
+          />
+        </rect>
+        <rect x={7.5} y={22} width={2.5} height={10} fill={c}>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            values="-18 8.75 22; 18 8.75 22; -18 8.75 22"
+            dur={`${dur}s`}
+            begin={`${delay}s`}
+            repeatCount="indefinite"
+          />
+        </rect>
+      </g>
+    </g>
   </Svg>
 );
 const Cyclist = ({ c, night }: { c: string; night?: boolean }) => (
@@ -812,12 +1377,26 @@ function place(
 }
 
 function FarTile({ t }: { t: Theme }) {
+  const night = !t.sun;
+  const MOUNTAIN =
+    "M0 96 Q200 44 400 82 T820 72 T1240 90 T1600 74 L1600 150 L0 150Z";
   return (
     <svg width={1600} height={150} viewBox="0 0 1600 150" className="block">
-      <path
-        d="M0 96 Q200 44 400 82 T820 72 T1240 90 T1600 74 L1600 150 L0 150Z"
-        fill={t.far}
-      />
+      <defs>
+        <linearGradient id="farHaze" x1="0" y1="0" x2="0" y2="1">
+          <stop
+            offset="0"
+            stopColor={night ? "#2a3b5c" : "#eaf1f8"}
+            stopOpacity={0.55}
+          />
+          <stop
+            offset="0.6"
+            stopColor={night ? "#2a3b5c" : "#eaf1f8"}
+            stopOpacity={0}
+          />
+        </linearGradient>
+      </defs>
+      <path d={MOUNTAIN} fill={t.far} />
       {Array.from({ length: 60 }).map((_, i) => (
         <polygon
           key={i}
@@ -825,6 +1404,58 @@ function FarTile({ t }: { t: Theme }) {
           fill={t.far2}
         />
       ))}
+      {/* Aerial-perspective haze: lightens the ridge so the range still reads as
+          far away, yet it's painted ON TOP of the opaque mountain so the layer
+          stays solid enough to hide the sun/moon passing behind it. */}
+      <path d={MOUNTAIN} fill="url(#farHaze)" />
+    </svg>
+  );
+}
+
+// A hazy city skyline far on the horizon — a wall of towers that sells the
+// sense of travelling a long way through many regions. Lit windows at night.
+function SkylineTile({ t }: { t: Theme }) {
+  const night = !t.sun;
+  const silh = night ? "#0a1226" : "#a8bccf";
+  const towers: ReactNode[] = [];
+  let x = 0;
+  let idx = 0;
+  while (x < 1600) {
+    const w = 20 + dr(idx, 71) * 26;
+    const h = 30 + dr(idx, 72) * 100;
+    towers.push(<rect key={idx} x={x} y={150 - h} width={w} height={h} fill={silh} />);
+    if (dr(idx, 73) > 0.72) {
+      towers.push(
+        <rect key={`a${idx}`} x={x + w / 2} y={150 - h - 14} width={1.5} height={14} fill={silh} />,
+      );
+    }
+    if (night) {
+      const cols = Math.max(1, Math.floor(w / 8));
+      const rows = Math.max(1, Math.floor(h / 12));
+      for (let cc = 0; cc < cols; cc++) {
+        for (let rr = 0; rr < rows; rr++) {
+          if (dr(idx * 13 + cc * 3 + rr * 7, 74) > 0.74) {
+            towers.push(
+              <rect
+                key={`w${idx}-${cc}-${rr}`}
+                x={x + 3 + cc * 8}
+                y={150 - h + 5 + rr * 12}
+                width={2}
+                height={3}
+                fill="#ffd27a"
+                opacity={0.8}
+              />,
+            );
+          }
+        }
+      }
+    }
+    x += w + 2 + dr(idx, 75) * 12;
+    idx++;
+  }
+  return (
+    <svg width={1600} height={150} viewBox="0 0 1600 150" className="block">
+      {towers}
     </svg>
   );
 }
@@ -836,7 +1467,7 @@ function MidTile({ t }: { t: Theme }) {
   let x = 12;
   const base = 180; // ground line the structures stand on
   const tileBottom = 250; // extends down into the main-road band (bottom 34%)
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 24; i++) {
     const r = dr(i, 21);
     let node: ReactNode;
     let w: number;
@@ -845,48 +1476,79 @@ function MidTile({ t }: { t: Theme }) {
     // under them reads as a stray dark smudge). Everything else is grounded.
     let shadow = true;
     let connects = false; // does this structure get a branch road to the highway?
-    if (r < 0.16) {
+    if (r < 0.12) {
       node = <Tree c={t.tree} />;
       w = 40;
       h = 70;
-    } else if (r < 0.3) {
-      node = <HomeYard c={t.bld} win={t.win} fig={t.near} />;
+    } else if (r < 0.2) {
+      node = <HomeYard c={t.bld} win={t.win} fig={t.near} night={night} />;
       w = 176;
       h = 96;
       connects = true;
-    } else if (r < 0.4) {
+    } else if (r < 0.3) {
       node = <Building c={t.bld} win={t.win} />;
       w = 64;
       h = 92;
       connects = true;
-    } else if (r < 0.48) {
+    } else if (r < 0.4) {
       node = <House c={t.bld} win={t.win} />;
       w = 70;
       h = 64;
       connects = true;
-    } else if (r < 0.56) {
+    } else if (r < 0.47) {
+      node = <Apartment c={t.bld} win={t.win} />;
+      w = 72;
+      h = 120;
+      connects = true;
+    } else if (r < 0.52) {
       node = <Temple c={t.bld} win={t.win} />;
       w = 54;
       h = 74;
       connects = true;
     } else if (r < 0.64) {
-      node = <Pine c={t.pine} />;
-      w = 34;
-      h = 72;
-    } else if (r < 0.72) {
-      node = <Palm c={t.tree} />;
-      w = 46;
-      h = 82;
-    } else if (r < 0.78) {
+      node = (
+        <Shop
+          c={t.bld}
+          win={t.win}
+          name={SHOP_NAMES[Math.floor(dr(i, 91) * SHOP_NAMES.length)]}
+          night={night}
+        />
+      );
+      w = 64;
+      h = 54;
+      connects = true;
+    } else if (r < 0.68) {
       node = <Hut c={t.bld} />;
       w = 54;
       h = 50;
       connects = true;
-    } else if (r < 0.84) {
+    } else if (r < 0.72) {
+      node = <Pine c={t.pine} />;
+      w = 34;
+      h = 72;
+    } else if (r < 0.77) {
+      node = <Palm c={t.tree} />;
+      w = 46;
+      h = 82;
+    } else if (r < 0.81) {
       node = <WaterTank c={t.bld} />;
       w = 44;
       h = 80;
+    } else if (r < 0.85) {
+      node = <Factory c={t.bld} win={t.win} night={night} />;
+      w = 104;
+      h = 96;
+      connects = true;
+    } else if (r < 0.88) {
+      node = <Silo c={t.bld} />;
+      w = 64;
+      h = 110;
+      connects = true;
     } else if (r < 0.92) {
+      node = <Pylon c={t.pole} />;
+      w = 70;
+      h = 150;
+    } else if (r < 0.96) {
       node = <Pond c={t.pond} />;
       w = 150;
       h = 46;
@@ -924,7 +1586,7 @@ function MidTile({ t }: { t: Theme }) {
     }
 
     place(out, i, x, base, w, h, node, shadow);
-    x += w + 24 + dr(i, 22) * 90;
+    x += w + 16 + dr(i, 22) * 66;
     if (x > 1600 - 160) break;
   }
   return (
@@ -993,6 +1655,52 @@ function RoadTile({ t }: { t: Theme }) {
         strokeWidth={2}
         strokeDasharray="16 18"
       />
+    </svg>
+  );
+}
+
+// Roadside businesses standing right at the highway verge — a Punchar store, a
+// chai stall and a dhaba. Rendered just behind the asphalt band so they read as
+// being beside the road (not set back in the field).
+function RoadsideTile({ t }: { t: Theme }) {
+  const night = !t.sun;
+  const gy = 90; // feet line, at the road's far kerb
+  const stall = (key: string, x: number, name: string) => (
+    <g key={key} transform={`translate(${x},${gy - 54})`}>
+      <ellipse cx={32} cy={54} rx={34} ry={3.5} fill="rgba(0,0,0,0.22)" />
+      <Shop c={t.bld} win={t.win} name={name} fig={t.near} night={night} />
+    </g>
+  );
+  return (
+    <svg width={1600} height={110} viewBox="0 0 1600 110" className="block">
+      {stall("punchar", 150, "PUNCHAR SHOP")}
+      {stall("chai", 250, "CHAI STALL")}
+      <g transform={`translate(430,${gy - 66})`}>
+        <ellipse cx={55} cy={66} rx={58} ry={4} fill="rgba(0,0,0,0.22)" />
+        <Dhaba c={t.bld} win={t.win} fig={t.near} night={night} />
+      </g>
+    </svg>
+  );
+}
+
+// A few vehicles pulled over at the roadside by the shops — a bus halted at the
+// verge, a car parked in front of the dhaba, an auto and a cyclist paused by the
+// stores. It scrolls WITH the road (drawn after the asphalt so they sit on it),
+// so they read as stopped traffic, not moving traffic.
+function ParkedTile({ t }: { t: Theme }) {
+  const night = !t.sun;
+  const out: ReactNode[] = [];
+  const base = 54; // wheel line on the road's far lane
+  // Placed at the SAME x as the RoadsideTile shops (and scrolling at the SAME
+  // speed — the band duration must match) so each vehicle reads as stopped AT
+  // a shop, not parked at some random stretch of road.
+  place(out, 0, 150, base, 46, 36, <Auto c={t.auto} night={night} />, true); // by the Punchar shop
+  place(out, 1, 250, base, 46, 36, <Cyclist c={t.near} night={night} />, true); // by the chai stall
+  place(out, 2, 430, base, 62, 30, <Car c={t.car} night={night} />, true); // in front of the dhaba
+  place(out, 3, 610, base, 94, 46, <Bus c={t.bus} night={night} />, true); // bus pulled up at the shop cluster
+  return (
+    <svg width={1600} height={64} viewBox="0 0 1600 64" className="block">
+      {out}
     </svg>
   );
 }
@@ -1102,6 +1810,7 @@ function Traffic({
 }
 
 function NearTile({ t }: { t: Theme }) {
+  const night = !t.sun; // walkers head indoors/off at night
   const out: ReactNode[] = [];
   let x = 20;
   const base = 130;
@@ -1119,19 +1828,27 @@ function NearTile({ t }: { t: Theme }) {
       w = 40;
       h = 24;
     } else if (r < 0.62) {
-      node = <Cow c={t.near} s={0.55} />;
+      node = <Cow c={t.near} s={0.55} dur={2.2 + dr(i, 51)} delay={dr(i, 52) * 2} />;
       w = 56 * 0.55;
       h = 36 * 0.55;
     } else if (r < 0.72) {
-      node = <Deer c={t.near} s={0.5} />;
+      node = <Deer c={t.near} s={0.5} dur={2.6 + dr(i, 53)} delay={dr(i, 54) * 2} />;
       w = 46 * 0.5;
       h = 48 * 0.5;
     } else if (r < 0.82) {
-      node = <Dog c={t.near} s={0.6} />;
+      node = <Dog c={t.near} s={0.6} dur={1.1 + dr(i, 55) * 0.5} delay={dr(i, 56) * 0.8} />;
       w = 36 * 0.6;
       h = 24 * 0.6;
     } else {
-      node = <PersonFig c={t.near} s={0.7} />;
+      node = (
+        <PersonFig
+          c={t.near}
+          s={0.7}
+          dur={0.6 + dr(i, 57) * 0.35}
+          delay={dr(i, 58) * 0.6}
+          night={night}
+        />
+      );
       w = 14 * 0.7;
       h = 32 * 0.7;
     }
@@ -1297,10 +2014,22 @@ export default function TrainExterior({
   running = true,
   hour = 8,
   hourRef,
+  onArrive,
+  onDepart,
+  onStop,
+  onLeave,
 }: {
   running?: boolean;
   hour?: number;
   hourRef?: { current: number };
+  /** Fired as the train approaches a station (begins braking to stop). */
+  onArrive?: () => void;
+  /** Fired when the train starts moving again (and once on initial departure). */
+  onDepart?: () => void;
+  /** Fired the instant the train comes to a complete halt at a station. */
+  onStop?: () => void;
+  /** Fired when the train begins pulling out of a station. */
+  onLeave?: () => void;
 }) {
   const sky = skyAt(hour);
   const t = sky.theme;
@@ -1311,6 +2040,16 @@ export default function TrainExterior({
   const initialSky = useRef(sky.theme.sky).current;
   const initialGround = useRef(t.ground).current;
   const liveHourRef = useRef(hour);
+  // Arrival/departure audio cues, kept in refs so the rAF loop (which only
+  // re-subscribes when `running` changes) always calls the latest handlers.
+  const onArriveRef = useRef(onArrive);
+  const onDepartRef = useRef(onDepart);
+  const onStopRef = useRef(onStop);
+  const onLeaveRef = useRef(onLeave);
+  onArriveRef.current = onArrive;
+  onDepartRef.current = onDepart;
+  onStopRef.current = onStop;
+  onLeaveRef.current = onLeave;
   liveHourRef.current = hour;
 
   // ---- intermittent weather: rain rolls in and out on random intervals ----
@@ -1349,14 +2088,23 @@ export default function TrainExterior({
   // to full speed. The same live speed factor is applied to every CSS animation
   // via the Web Animations API playbackRate, so the train, wheels, rails and all
   // parallax layers slow down and speed up together (no instant stop, no reset).
-  const PERIOD = 3200; // px between stations (matches the ~320px/s max speed)
+  // px between stations. Large so stations are far apart and the train runs a
+  // long stretch before the next one — reads as a long-distance route (at the
+  // ~320px/s speed a station now comes around roughly every 20s).
+  const PERIOD = 6400;
   const SPEED = 320; // px/s at full speed
   // Random halt cadence: after each stop, the next halt is scheduled 3, 4 or 5
   // stations ahead (re-rolled every time), so the train doesn't stop on a fixed beat.
   const HALT_MIN = 3; // minimum stations between halts
   const HALT_RANGE = 3; // gap = HALT_MIN + floor(rand * HALT_RANGE) ∈ {3,4,5}
   const DECEL_DIST = 280; // px over which to brake to a stop
-  const HOLD_MS = 2000; // stopped duration at the station
+  // Blow the approach horn when the station's leading edge is this many px
+  // ahead of the train (screen centre) — so it sounds while APPROACHING, not
+  // once already beside the platform. The station's half-width is added below
+  // to target its near edge, so this is a true "~100px before the station".
+  const HORN_LEAD = 100;
+  const HOLD_MS = 8000; // stopped duration at the station (enough to hear the
+  // arrival announcement + platform ambience before pulling out)
   const ACCEL_MS = 2200; // time to ease back up to full speed
 
   const sceneRootRef = useRef<HTMLDivElement>(null);
@@ -1409,6 +2157,7 @@ export default function TrainExterior({
   const distRef = useRef(0);
   const phaseRef = useRef<"cruise" | "decel" | "hold" | "accel">("cruise");
   const lastHaltMRef = useRef(-1);
+  const hornFiredMRef = useRef(-1); // station index we last sounded the approach horn for
   const nextHaltAtRef = useRef(-1); // station index of the next scheduled halt
   const signalRefs = useRef<(SVGGElement | null)[]>([null, null, null]); // platform signals
   const speedFactorRef = useRef(1); // live train speed 0..1, shared with the traffic loop
@@ -1429,6 +2178,7 @@ export default function TrainExterior({
     let lastHaltM = lastHaltMRef.current;
     let nextHaltAt = nextHaltAtRef.current;
     if (nextHaltAt < 0) nextHaltAt = HALT_MIN + Math.floor(Math.random() * HALT_RANGE);
+    let hornFiredM = hornFiredMRef.current;
     let dFrom = 0;
     let dTo = 0;
     let dStart = 0;
@@ -1462,6 +2212,10 @@ export default function TrainExterior({
       }
     };
 
+    // Departure from the origin — sound the running horn shortly after the
+    // train gets under way (not on the same frame as the unlock click).
+    const departTimer = window.setTimeout(() => onDepartRef.current?.(), 1400);
+
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -1494,6 +2248,12 @@ export default function TrainExterior({
             dStart = now;
             // ease-out-cubic starts at full speed when dDur = 3*distance/SPEED
             dDur = Math.max(500, (3 * (dTo - dFrom) * 1000) / SPEED);
+            // Fallback: a narrow station's cruise-phase window can be skipped
+            // once braking starts (nextHaltAt has advanced), so ensure it toots.
+            if (hornFiredM !== nextM) {
+              hornFiredM = nextM;
+              onArriveRef.current?.();
+            }
           }
         }
       } else if (phase === "decel") {
@@ -1504,6 +2264,7 @@ export default function TrainExterior({
           dist = dTo;
           phase = "hold";
           holdStart = now;
+          onStopRef.current?.(); // fully halted → station sounds
         }
       } else if (phase === "hold") {
         dist = dTo;
@@ -1511,11 +2272,26 @@ export default function TrainExterior({
         if (now - holdStart >= HOLD_MS) {
           phase = "accel";
           accelStart = now;
+          onLeaveRef.current?.(); // pulling out → stop station sounds
         }
       } else {
         spd = Math.min(1, (now - accelStart) / ACCEL_MS);
         dist += SPEED * spd * dt;
         if (spd >= 1) phase = "cruise";
+      }
+
+      // Approach horn: fire when the scheduled halt's platform edge is ~HORN_LEAD
+      // px ahead of the train, so it sounds while coming in — not once stopped.
+      if (phase === "cruise" && c >= 0 && sw > 0) {
+        const toHalt = c + nextHaltAt * PERIOD - dist;
+        if (
+          toHalt > 0 &&
+          toHalt <= sw / 2 + HORN_LEAD &&
+          hornFiredM !== nextHaltAt
+        ) {
+          hornFiredM = nextHaltAt;
+          onArriveRef.current?.();
+        }
       }
 
       // actual speed factor keeps the scenery locked to the station's motion
@@ -1540,6 +2316,7 @@ export default function TrainExterior({
       phaseRef.current = phase;
       lastHaltMRef.current = lastHaltM;
       nextHaltAtRef.current = nextHaltAt;
+      hornFiredMRef.current = hornFiredM;
 
       const wantRed =
         phase === "decel" || (phase === "hold" && now - holdStart < 1500);
@@ -1553,6 +2330,7 @@ export default function TrainExterior({
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(departTimer);
       for (const a of anims) {
         try {
           a.playbackRate = 1;
@@ -1621,8 +2399,17 @@ export default function TrainExterior({
           <BirdTile t={t} />
         </Band>
 
-        {/* Far hills + jungle (hazy) */}
-        <Band running={running} duration={60} bottom="48%" height={150} z={2} blur={1.6} opacity={0.9}>
+        {/* Distant city skyline on the horizon — very slow parallax. Drawn first
+            (behind the far hills, which overlap its base). Opaque enough that the
+            sun/moon don't bleed through the towers. */}
+        <Band running={running} duration={150} bottom="48%" height={150} z={2} blur={1} opacity={0.8}>
+          <SkylineTile t={t} />
+        </Band>
+
+        {/* Far hills + jungle. Fully OPAQUE so they properly hide the sun/moon
+            when the sun/moon arc passes behind the ridge (a translucent ridge let
+            the bright disc show straight through). A small blur keeps a soft edge. */}
+        <Band running={running} duration={60} bottom="48%" height={150} z={2} blur={1.1} opacity={1}>
           <FarTile t={t} />
         </Band>
 
@@ -1633,10 +2420,24 @@ export default function TrainExterior({
           <MidTile t={t} />
         </Band>
 
+        {/* Roadside businesses at the verge: Punchar store, chai stall, dhaba.
+            Drawn just BEFORE the asphalt (same z) so the road laps their front
+            feet — they sit beside the highway, scrolling a touch slower than it. */}
+        <Band running={running} duration={11} bottom="34%" height={110} z={4}>
+          <RoadsideTile t={t} />
+        </Band>
+
         {/* Road: a straight asphalt strip (scrolls with the scenery, so it
             stops when the train halts) ... */}
         <Band running={running} duration={8} bottom="34%" height={64} z={4}>
           <RoadTile t={t} />
+        </Band>
+
+        {/* Parked / stopped vehicles at the roadside shops. MUST scroll at the
+            same duration as the RoadsideTile band (11s) so they stay locked to
+            the shops; drawn after the asphalt so they sit ON the road edge. */}
+        <Band running={running} duration={11} bottom="34%" height={64} z={4}>
+          <ParkedTile t={t} />
         </Band>
         {/* ... and traffic that drives forward on its own at mixed speeds. It
             is JS-driven so the train overtakes it while cruising, yet the cars

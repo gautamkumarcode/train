@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import SfxGrid from "@/components/SfxGrid";
 import TrainJourney from "@/components/TrainJourney";
 import YouTubePlayer from "@/components/YouTubePlayer";
+import { HeadphonesIcon, PauseIcon, PlayIcon } from "@/components/icons";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { useTrainStatus } from "@/hooks/useTrainStatus";
 import type { TrainStatusKind } from "@/app/lib/train-status";
@@ -91,6 +92,77 @@ export default function YatriKripyaPage() {
     [activeStreamId, engine],
   );
 
+  // Arrival / departure horns, driven by the exterior scene's halt state
+  // machine (see TrainExterior). Two distinct files so a different stopped vs
+  // running recording can be dropped in later without a code change. The horn
+  // plays in FULL — no trim, no start offset (per user).
+  const handleArrive = useCallback(() => {
+    // station coming up → toot on approach
+    engine.playSfx("/audio/sfx/horn-stopped.mp3", { volume: 0.7 });
+  }, [engine]);
+  const handleDepart = useCallback(() => {
+    engine.playSfx("/audio/sfx/horn-running.mp3", { volume: 0.7 });
+  }, [engine]);
+
+  // Station beds: the instant the train halts, play the arrival announcement
+  // (once) and start the platform ambience looping; both are cut when the train
+  // pulls out again (per user: play both at stop, stop both on leave).
+  const handleStop = useCallback(() => {
+    engine.setLoop("announce", "/audio/sfx/station-announce.mp3", {
+      volume: 0.9,
+      loop: false,
+    });
+    engine.setLoop("platform", "/audio/sfx/station-wait.wav", {
+      volume: 0.5,
+      loop: true,
+    });
+  }, [engine]);
+  const handleLeave = useCallback(() => {
+    engine.stopLoop("platform");
+    engine.stopLoop("announce");
+  }, [engine]);
+
+  // The chai-wala's call drifts through the carriage at random intervals, kept
+  // quiet so it reads as ambience rather than a distraction. Only once the
+  // ambience is actually playing (bgPlaying) — a rejected unlock would otherwise
+  // fire these into silence.
+  useEffect(() => {
+    if (!boarded || !engine.bgPlaying) return;
+    let timer = 0;
+    const callChai = () => {
+      engine.playSfx("/audio/sfx/chai-chai.mp3", { volume: 0.32 });
+      timer = window.setTimeout(callChai, 28_000 + Math.random() * 26_000);
+    };
+    timer = window.setTimeout(callChai, 14_000); // first call after a short wait
+    return () => clearTimeout(timer);
+  }, [boarded, engine]);
+
+  // Mid-journey running horn: a lone short blast every so often while the
+  // train is out on the line (between stations), not tied to a halt.
+  useEffect(() => {
+    if (!boarded || !engine.bgPlaying) return;
+    let timer = 0;
+    const toot = () => {
+      engine.playSfx("/audio/sfx/horn-running.mp3", { volume: 0.6 });
+      timer = window.setTimeout(toot, 20_000 + Math.random() * 18_000);
+    };
+    timer = window.setTimeout(toot, 16_000);
+    return () => clearTimeout(timer);
+  }, [boarded, engine]);
+
+  // The "Chai Garam" vendor call joins the journey after some time and then
+  // runs as a quiet continuous loop, together with the periodic chai-chai call.
+  useEffect(() => {
+    if (!boarded || !engine.bgPlaying) return;
+    const start = window.setTimeout(() => {
+      engine.setLoop("chai", "/audio/sfx/chai-garam.mp3", { volume: 0.26 });
+    }, 20_000);
+    return () => {
+      clearTimeout(start);
+      engine.stopLoop("chai");
+    };
+  }, [boarded, engine]);
+
   const status = tracking.data;
   const statusMeta = useMemo(
     () => STATUS_META[status?.status ?? "UNKNOWN"],
@@ -102,7 +174,13 @@ export default function YatriKripyaPage() {
       {/* Full-frame journey scene (window / outside + its own bottom view &
           day-night chips). Fixed overlays never cause the page to scroll. */}
       <div className="absolute inset-0">
-        <TrainJourney running={boarded} />
+        <TrainJourney
+          running={boarded}
+          onArrive={handleArrive}
+          onDepart={handleDepart}
+          onStop={handleStop}
+          onLeave={handleLeave}
+        />
       </div>
 
       {/* Top HUD — all the sound controls as small chips, everything in one frame. */}
@@ -115,15 +193,15 @@ export default function YatriKripyaPage() {
         }
       >
         {/* Sound chips: ambience + hidden streams + environment sfx */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-coach-cream/10 bg-black/50 px-2 py-1.5 backdrop-blur-sm">
+        <div className="hud-panel">
           <AmbienceChips engine={engine} />
-          <span className="mx-0.5 hidden h-5 w-px bg-coach-cream/15 sm:block" />
+          <span className="hud-divider hidden sm:block" />
           <StreamChips
             engine={engine}
             activeStreamId={activeStreamId}
             onToggleStream={toggleStream}
           />
-          <span className="mx-0.5 hidden h-5 w-px bg-coach-cream/15 sm:block" />
+          <span className="hud-divider hidden sm:block" />
           <SfxGrid engine={engine} compact />
         </div>
 
@@ -505,10 +583,15 @@ function AmbienceChips({ engine }: { engine: ReturnType<typeof useAudioEngine> }
       <button
         type="button"
         onClick={engine.toggleBg}
-        className="flex items-center gap-1 rounded-full border border-signal-amber/40 bg-signal-amber/5 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-signal-amber transition hover:bg-signal-amber/15"
+        data-on={engine.bgPlaying ? "true" : undefined}
+        className="hud-chip"
         aria-label={engine.bgPlaying ? "Pause ambience" : "Play ambience"}
       >
-        {engine.bgPlaying ? "⏸" : "▶"}
+        {engine.bgPlaying ? (
+          <PauseIcon className="ico" />
+        ) : (
+          <PlayIcon className="ico" />
+        )}
         <span className="hidden sm:inline">Ambience</span>
       </button>
       <input
@@ -518,7 +601,7 @@ function AmbienceChips({ engine }: { engine: ReturnType<typeof useAudioEngine> }
         step={0.01}
         value={engine.bgVolume}
         onChange={(e) => engine.setBgVolume(Number(e.target.value))}
-        className="h-1 w-14 cursor-pointer appearance-none rounded-full bg-coach-cream/20 accent-signal-amber sm:w-16"
+        className="hud-range w-14 sm:w-16"
         aria-label="Background ambience volume"
       />
     </div>
@@ -546,26 +629,22 @@ function StreamChips({
             type="button"
             onClick={() => onToggleStream(st.id, st.src)}
             aria-pressed={isActive}
+            data-on={isActive ? "true" : undefined}
             title={st.label}
-            className={[
-              "flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide transition",
-              isActive
-                ? "border-signal-green/60 bg-signal-green/10 text-coach-cream"
-                : "border-coach-cream/15 bg-berth-night text-coach-cream/70 hover:border-signal-green/40",
-            ].join(" ")}
+            className="hud-chip hud-chip--green"
           >
             {isActive ? (
               <span className="flex items-end gap-0.5" aria-hidden>
                 {[0, 1, 2].map((b) => (
                   <span
                     key={b}
-                    className="w-0.5 origin-bottom animate-eq-bar bg-signal-green"
+                    className="w-0.5 origin-bottom animate-eq-bar bg-current"
                     style={{ height: 8, animationDelay: `${b * 0.15}s` }}
                   />
                 ))}
               </span>
             ) : (
-              <span aria-hidden>🎧</span>
+              <HeadphonesIcon className="ico" />
             )}
             <span className="hidden sm:inline">{short}</span>
           </button>
